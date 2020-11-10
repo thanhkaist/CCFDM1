@@ -159,13 +159,13 @@ def make_logdir(args):
     ts = time.strftime("%m-%d-%H-%M-%S", ts)
     env_name = args.domain_name + '-' + args.task_name
     if args.encoder_type == 'pixel':
-        exp_name = env_name + '/' + 'img' + str(args.image_size) + \
+        exp_name = env_name + '/' + args.exp + '/' + 'img' + str(args.image_size) + \
                    '-b' + str(args.batch_size) + '-s' + str(args.seed) + \
-                   '-' + args.encoder_type + '-' + args.exp + '-' + ts
+                   '-' + args.encoder_type + '-' + ts
     elif args.encoder_type == 'identity':
-        exp_name = env_name + '/' + 'state' + \
+        exp_name = env_name + '/' + args.exp + '/' + 'state' + \
                    '-b' + str(args.batch_size) + '-s' + str(args.seed) + \
-                   '-' + args.encoder_type + '-' + args.exp + '-' + ts
+                   '-' + args.encoder_type + '-' + ts
     else:
         raise NotImplementedError('Not support: {}'.format(args.encoder_type))
 
