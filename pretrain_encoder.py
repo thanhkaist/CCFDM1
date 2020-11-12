@@ -250,7 +250,7 @@ def main():
     start_time = time.time()
 
     env_step = 0
-    for step in tqdm(range(args.num_train_steps)):
+    for step in tqdm(range(args.num_train_steps + 1)):
         # evaluate agent periodically
 
         if step % args.eval_freq == 0:
