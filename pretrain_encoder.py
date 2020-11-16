@@ -63,6 +63,7 @@ def parse_args():
     parser.add_argument('--num_filters', default=32, type=int)
 
     # Self-supervised learning config
+    parser.add_argument('--n_samples', default=50000, type=int)
     parser.add_argument('--cpc_update_freq', default=1, type=int)
     parser.add_argument('--idm_update_freq', default=1, type=int)
 
@@ -249,49 +250,17 @@ def main():
     episode, episode_reward, done = 0, 0, True
     start_time = time.time()
 
-    env_step = 0
-    for step in tqdm(range(args.num_train_steps + 1)):
-        # evaluate agent periodically
-
-        if step % args.eval_freq == 0:
-            # L.log('eval/episode', episode, env_step)
-            # evaluate(env, agent, video, args.num_eval_episodes, L, step, env_step, args)
-            if args.save_model:
-                agent.save_curl(model_dir, step)
-                agent.save(model_dir, step)
-            # if args.save_buffer:
-            #     replay_buffer.save(buffer_dir)
+    # Collect data from environments
+    for step in tqdm(range(args.n_samples)):
 
         if done:
-            if step > 0:
-                if step % args.log_interval == 0:
-                    L.log('train/duration', time.time() - start_time, env_step)
-                    L.dump(env_step)
-                start_time = time.time()
-            if step % args.log_interval == 0:
-                L.log('train/episode_reward', episode_reward, env_step)
-
             obs = env.reset()
             done = False
             episode_reward = 0
             episode_step = 0
             episode += 1
-            if step % args.log_interval == 0:
-                L.log('train/episode', episode, env_step)
 
-        # sample action for data collection
-        # if step < args.init_steps:
         action = env.action_space.sample()
-        # else:
-        #     with utils.eval_mode(agent):
-        #         action = agent.sample_action(obs)
-
-        # run training update
-        if step >= args.init_steps:
-            num_updates = 1
-            for _ in range(num_updates):
-                agent.update(replay_buffer, L, step, env_step)
-
         next_obs, reward, done, _ = env.step(action)
 
         # allow infinit bootstrap
@@ -303,7 +272,21 @@ def main():
 
         obs = next_obs
         episode_step += 1
-        env_step += 1 * args.action_repeat
+
+    if args.save_buffer:
+        replay_buffer.save(buffer_dir)
+
+    # Pre-train encoder
+    for step in tqdm(range(args.num_train_steps + 1)):
+        # evaluate agent periodically
+
+        agent.update(replay_buffer, L, step, step)
+
+        if step % args.eval_freq == 0:
+            if args.save_model:
+                agent.save_curl(model_dir, step)
+                agent.save(model_dir, step)
+
 
 
 if __name__ == '__main__':

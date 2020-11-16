@@ -8,7 +8,7 @@ import math
 import utils
 from encoder import make_encoder
 
-LOG_FREQ = 10000
+LOG_FREQ = 1000
 
 
 def gaussian_logprob(noise, log_std):
@@ -342,7 +342,6 @@ class PretrainedSacAgent(object):
         # tie encoders between IDM and critic, and CURL and critic
         self.inverse_model.encoder.copy_conv_weights_from(self.critic.encoder)
 
-        # TODO: check IDM optimizer
         self.idm_optimizer = torch.optim.Adam(
             self.inverse_model.parameters(), lr=idm_lr
         )
