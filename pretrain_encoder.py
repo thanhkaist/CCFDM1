@@ -247,16 +247,14 @@ def main():
 
     L = Logger(args.work_dir, use_tb=args.save_tb)
 
-    episode, episode_reward, done = 0, 0, True
-    start_time = time.time()
+    episode, done = 0, True
 
-    # Collect data from environments
-    for step in tqdm(range(args.n_samples)):
+    print('[INFO] Collecting data from environment...')
+    for i in tqdm(range(args.n_samples)):
 
         if done:
             obs = env.reset()
             done = False
-            episode_reward = 0
             episode_step = 0
             episode += 1
 
@@ -267,7 +265,6 @@ def main():
         done_bool = 0 if episode_step + 1 == env._max_episode_steps else float(
             done
         )
-        episode_reward += reward
         replay_buffer.add(obs, action, reward, next_obs, done_bool)
 
         obs = next_obs
@@ -276,13 +273,14 @@ def main():
     if args.save_buffer:
         replay_buffer.save(buffer_dir)
 
-    # Pre-train encoder
+    print('[INFO] Pre-training encoder ...')
     for step in tqdm(range(args.num_train_steps + 1)):
         # evaluate agent periodically
 
-        agent.update(replay_buffer, L, step, step)
+        agent.update(replay_buffer, L, step)
 
         if step % args.eval_freq == 0:
+            print('[INFO] Experiment: ', args.exp)
             if args.save_model:
                 agent.save_curl(model_dir, step)
                 agent.save(model_dir, step)

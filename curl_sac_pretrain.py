@@ -425,15 +425,12 @@ class PretrainedSacAgent(object):
             L.log('train/idm_loss', loss, step)
 
 
-    def update(self, replay_buffer, L, step, env_step):
+    def update(self, replay_buffer, L, step):
         if self.encoder_type == 'pixel':
             obs, action, reward, next_obs, not_done, cpc_kwargs = replay_buffer.sample_cpc()
         else:
             obs, action, reward, next_obs, not_done = replay_buffer.sample_proprio()
     
-        if step % self.log_interval == 0:
-            L.log('train/batch_reward', reward.mean(), env_step)
-
         if step % self.critic_target_update_freq == 0:
             utils.soft_update_params(
                 self.critic.encoder, self.critic_target.encoder,
