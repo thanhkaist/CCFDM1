@@ -280,7 +280,7 @@ def main():
         agent.update(replay_buffer, L, step)
 
         if step % args.eval_freq == 0:
-            print('[INFO] Experiment: ', args.exp)
+            print('[INFO] Experiment: {} - seed: {}'.format(args.exp, args.seed))
             if args.save_model:
                 agent.save_curl(model_dir, step)
                 agent.save(model_dir, step)
