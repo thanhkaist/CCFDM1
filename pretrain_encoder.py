@@ -66,6 +66,7 @@ def parse_args():
     parser.add_argument('--n_samples', default=50000, type=int)
     parser.add_argument('--cpc_update_freq', default=1, type=int)
     parser.add_argument('--idm_update_freq', default=1, type=int)
+    parser.add_argument('--fdm_update_freq', default=1, type=int)
 
     parser.add_argument('--curl_latent_dim', default=128, type=int)
     # sac
@@ -155,6 +156,7 @@ def make_agent(obs_shape, action_shape, args, device):
             num_filters=args.num_filters,
             cpc_update_freq=args.cpc_update_freq,
             idm_update_freq=args.idm_update_freq,
+            fdm_update_freq=args.fdm_update_freq,
             log_interval=args.log_interval,
             detach_encoder=args.detach_encoder,
             curl_latent_dim=args.curl_latent_dim
