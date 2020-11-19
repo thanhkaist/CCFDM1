@@ -336,6 +336,7 @@ class PretrainedSacAgent(object):
         encoder_feature_dim=50,
         encoder_lr=1e-3,
         idm_lr=1e-3,
+        fdm_lr=1e-3,
         encoder_tau=0.005,
         num_layers=4,
         num_filters=32,
@@ -403,7 +404,7 @@ class PretrainedSacAgent(object):
         )
 
         self.fdm_optimizer = torch.optim.Adam(
-            self.forward_model.parameters(), lr=idm_lr
+            self.forward_model.parameters(), lr=fdm_lr
         )
 
         if self.encoder_type == 'pixel':

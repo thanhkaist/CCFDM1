@@ -58,6 +58,7 @@ def parse_args():
     parser.add_argument('--encoder_feature_dim', default=50, type=int)
     parser.add_argument('--encoder_lr', default=1e-3, type=float)
     parser.add_argument('--idm_lr', default=1e-3, type=float)
+    parser.add_argument('--fdm_lr', default=1e-3, type=float)
     parser.add_argument('--encoder_tau', default=0.05, type=float)
     parser.add_argument('--num_layers', default=4, type=int)
     parser.add_argument('--num_filters', default=32, type=int)
@@ -151,6 +152,7 @@ def make_agent(obs_shape, action_shape, args, device):
             encoder_feature_dim=args.encoder_feature_dim,
             encoder_lr=args.encoder_lr,
             idm_lr=args.idm_lr,
+            fdm_lr=args.fdm_lr,
             encoder_tau=args.encoder_tau,
             num_layers=args.num_layers,
             num_filters=args.num_filters,
