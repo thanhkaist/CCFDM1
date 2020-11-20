@@ -66,8 +66,8 @@ def parse_args():
     # Self-supervised learning config
     parser.add_argument('--n_samples', default=50000, type=int)
     parser.add_argument('--cpc_update_freq', default=1, type=int)
-    parser.add_argument('--idm_update_freq', default=1, type=int)
-    parser.add_argument('--fdm_update_freq', default=1, type=int)
+    parser.add_argument('--idm_update_freq', default=999999999, type=int)
+    parser.add_argument('--fdm_update_freq', default=999999999, type=int)
 
     parser.add_argument('--curl_latent_dim', default=128, type=int)
     # sac
