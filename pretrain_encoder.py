@@ -10,6 +10,7 @@ import time
 import json
 import dmc2gym
 import copy
+import glob
 from tqdm import tqdm
 
 import utils
@@ -81,6 +82,7 @@ def parse_args():
     parser.add_argument('--work_dir', default='.', type=str)
     parser.add_argument('--save_tb', default=False, action='store_true')
     parser.add_argument('--save_buffer', default=False, action='store_true')
+    parser.add_argument('--load_buffer', default=None, type=str)
     parser.add_argument('--save_video', default=False, action='store_true')
     parser.add_argument('--save_model', default=False, action='store_true')
     parser.add_argument('--detach_encoder', default=False, action='store_true')
@@ -253,28 +255,33 @@ def main():
 
     episode, done = 0, True
 
-    print('[INFO] Collecting data from environment...')
-    for i in tqdm(range(args.n_samples)):
+    if args.load_buffer is not None:
+        save_dir = os.path.join(args.load_buffer, 'buffer')
+        replay_buffer.load(save_dir)
+    else:
+        print('[INFO] Collecting data from environment...')
+        for _ in tqdm(range(args.n_samples)):
 
-        if done:
-            obs = env.reset()
-            done = False
-            episode_step = 0
-            episode += 1
+            if done:
+                obs = env.reset()
+                done = False
+                episode_step = 0
+                episode += 1
 
-        action = env.action_space.sample()
-        next_obs, reward, done, _ = env.step(action)
+            action = env.action_space.sample()
+            next_obs, reward, done, _ = env.step(action)
 
-        # allow infinit bootstrap
-        done_bool = 0 if episode_step + 1 == env._max_episode_steps else float(
-            done
-        )
-        replay_buffer.add(obs, action, reward, next_obs, done_bool)
+            # allow infinit bootstrap
+            done_bool = 0 if episode_step + 1 == env._max_episode_steps else float(
+                done
+            )
+            replay_buffer.add(obs, action, reward, next_obs, done_bool)
 
-        obs = next_obs
-        episode_step += 1
+            obs = next_obs
+            episode_step += 1
 
-    if args.save_buffer:
+    import pdb; pdb.set_trace()
+    if args.save_buffer and args.load_buffer is None:
         replay_buffer.save(buffer_dir)
 
     print('[INFO] Pre-training encoder ...')

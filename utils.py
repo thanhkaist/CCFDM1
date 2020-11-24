@@ -161,7 +161,7 @@ class ReplayBuffer(Dataset):
             self.not_dones[self.last_save:self.idx]
         ]
         self.last_save = self.idx
-        torch.save(payload, path)
+        torch.save(payload, path, pickle_protocol=4)
 
     def load(self, save_dir):
         chunks = os.listdir(save_dir)
