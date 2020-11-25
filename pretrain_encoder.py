@@ -287,7 +287,8 @@ def main():
     for step in tqdm(range(args.num_train_steps + 1)):
         # evaluate agent periodically
 
-        agent.update(replay_buffer, L, step)
+        if step != 0:
+            agent.update(replay_buffer, L, step)
 
         if step % args.eval_freq == 0:
             print('[INFO] Experiment: {} - seed: {}'.format(args.exp, args.seed))
