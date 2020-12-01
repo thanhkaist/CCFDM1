@@ -126,7 +126,39 @@ class ReplayBuffer(Dataset):
         idxs = np.random.randint(
             0, self.capacity if self.full else self.idx, size=self.batch_size
         )
-      
+
+        obses = self.obses[idxs]
+        next_obses = self.next_obses[idxs]
+        pos = obses.copy()
+
+        obses = random_crop(obses, self.image_size)
+        next_obses = random_crop(next_obses, self.image_size)
+        pos = random_crop(pos, self.image_size)
+    
+        obses = torch.as_tensor(obses, device=self.device).float()
+        next_obses = torch.as_tensor(
+            next_obses, device=self.device
+        ).float()
+        actions = torch.as_tensor(self.actions[idxs], device=self.device)
+        rewards = torch.as_tensor(self.rewards[idxs], device=self.device)
+        not_dones = torch.as_tensor(self.not_dones[idxs], device=self.device)
+
+        pos = torch.as_tensor(pos, device=self.device).float()
+        cpc_kwargs = dict(obs_anchor=obses, obs_pos=pos,
+                          time_anchor=None, time_pos=None)
+
+        return obses, actions, rewards, next_obses, not_dones, cpc_kwargs
+
+    def sample_cpc_v1(self):
+
+        start = time.time()
+        # idxs = np.random.randint(
+        #     0, self.capacity if self.full else self.idx, size=self.batch_size
+        # )
+        # TODO: Check new sample
+        idxs = np.random.choice(self.capacity if self.full else self.idx, size=self.batch_size,
+                                replace=False)
+
         obses = self.obses[idxs]
         next_obses = self.next_obses[idxs]
         pos = obses.copy()
