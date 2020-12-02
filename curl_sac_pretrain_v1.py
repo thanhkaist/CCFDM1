@@ -204,6 +204,11 @@ class CURL(nn.Module):
             nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim),
         )
 
+        # self.predictor_inv = nn.Sequential(
+        #     nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim), nn.ReLU(),
+        #     nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim),
+        # )
+
         self.W = nn.Parameter(torch.rand(z_dim, z_dim))
         self.output_type = output_type
 
@@ -529,8 +534,18 @@ class PretrainedSacAgent_v1(object):
 
         logits = self.CURL.compute_logits(z_t_plus_1_a, z_t_plus_1_pos)
         labels = torch.arange(logits.shape[0]).long().to(self.device)
-        loss = self.cross_entropy_loss(logits, labels)
+        loss_s2s_next = self.cross_entropy_loss(logits, labels)
 
+        z_t_a = self.CURL.encode(next_obs_pos)
+        z_t_plus_1_a = self.CURL.predictor_inv(z_t_a)
+
+        z_t_plus_1_pos = self.CURL.encode(cur_obs_anchor, ema=True)
+
+        logits = self.CURL.compute_logits(z_t_plus_1_a, z_t_plus_1_pos)
+        labels = torch.arange(logits.shape[0]).long().to(self.device)
+        loss_s_next2s = self.cross_entropy_loss(logits, labels)
+
+        loss = 0.5 * (loss_s2s_next + loss_s_next2s)
         self.encoder_optimizer.zero_grad()
         self.cpc_optimizer.zero_grad()
         loss.backward()
@@ -539,6 +554,8 @@ class PretrainedSacAgent_v1(object):
         self.cpc_optimizer.step()
         if step % self.log_interval == 0:
             L.log('train/curl_loss', loss, step)
+            L.log('train/curl_loss_s2s_next', loss_s2s_next, step)
+            L.log('train/curl_loss_s_next2s', loss_s_next2s, step)
 
 
     def update_idm(self, obs, next_obs, action, L, step):
@@ -580,8 +597,8 @@ class PretrainedSacAgent_v1(object):
         if step % self.cpc_update_freq == 0 and self.encoder_type == 'pixel':
             print('[INFO] Train w/ CPC.')
             # obs_anchor, obs_pos = cpc_kwargs["obs_anchor"], cpc_kwargs["obs_pos"]
-            # self.update_cpc_v1(obs, next_obs, cpc_kwargs, L, step)
-            self.update_cpc_v2(obs, next_obs, cpc_kwargs, L, step)
+            self.update_cpc_v1(obs, next_obs, cpc_kwargs, L, step)
+            # self.update_cpc_v2(obs, next_obs, cpc_kwargs, L, step)
 
         if step % self.idm_update_freq == 0 and self.encoder_type == 'pixel':
             print('[INFO] Train w/ IDM.')
