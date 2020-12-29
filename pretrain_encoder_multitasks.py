@@ -27,8 +27,8 @@ from torchvision import transforms
 def parse_args():
     parser = argparse.ArgumentParser()
     # environment
-    parser.add_argument('--domain_name', default='cheetah')
-    parser.add_argument('--task_name', default='run')
+    parser.add_argument('--domain_name', default='multi')
+    parser.add_argument('--task_name', default='domains')
     parser.add_argument('--pre_transform_image_size', default=100, type=int)
 
     parser.add_argument('--max_tasks', default=10, type=int)
