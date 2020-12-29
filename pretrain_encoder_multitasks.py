@@ -273,6 +273,10 @@ def main():
     envs = []
     domain_names = ['ball_in_cup', 'cartpole', 'walker', 'cheetah']
     task_names = ['catch', 'swingup', 'walk', 'run']
+    action_repeats = dict(ball_in_cup=4,
+                          cartpole=8,
+                          walker=2,
+                          cheetah=4)
     n_tasks = len(domain_names)
 
     for i in range(n_tasks):
@@ -284,7 +288,7 @@ def main():
             from_pixels=(args.encoder_type == 'pixel'),
             height=args.pre_transform_image_size,
             width=args.pre_transform_image_size,
-            frame_skip=args.action_repeat
+            frame_skip=action_repeats[domain_names[i]]
         )
         env.seed(args.seed)
 
