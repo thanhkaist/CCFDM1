@@ -362,13 +362,13 @@ class ReplayBufferMultiTasks(Dataset):
         actions = torch.as_tensor(self.actions[idxs], device=self.device)
         rewards = torch.as_tensor(self.rewards[idxs], device=self.device)
         not_dones = torch.as_tensor(self.not_dones[idxs], device=self.device)
-        tasks = torch.as_tensor(self.task_desc[idxs], device=self.device)
+        task_descs = torch.as_tensor(self.task_desc[idxs], device=self.device)
 
         pos = torch.as_tensor(pos, device=self.device).float()
         cpc_kwargs = dict(obs_anchor=obses, obs_pos=pos,
                           time_anchor=None, time_pos=None)
 
-        return obses, actions, rewards, next_obses, not_dones, cpc_kwargs, tasks
+        return obses, actions, rewards, next_obses, not_dones, cpc_kwargs, task_descs
 
     def save(self, save_dir):
         if self.idx == self.last_save:
@@ -379,7 +379,8 @@ class ReplayBufferMultiTasks(Dataset):
             self.next_obses[self.last_save:self.idx],
             self.actions[self.last_save:self.idx],
             self.rewards[self.last_save:self.idx],
-            self.not_dones[self.last_save:self.idx]
+            self.not_dones[self.last_save:self.idx],
+            self.task_desc[self.last_save:self.idx]
         ]
         self.last_save = self.idx
         torch.save(payload, path, pickle_protocol=4)
@@ -397,6 +398,7 @@ class ReplayBufferMultiTasks(Dataset):
             self.actions[start:end] = payload[2]
             self.rewards[start:end] = payload[3]
             self.not_dones[start:end] = payload[4]
+            self.task_desc[start:end] = payload[5]
             self.idx = end
 
     def __getitem__(self, idx):
@@ -409,12 +411,13 @@ class ReplayBufferMultiTasks(Dataset):
         reward = self.rewards[idx]
         next_obs = self.next_obses[idx]
         not_done = self.not_dones[idx]
+        task = self.task_desc[idx]
 
         if self.transform:
             obs = self.transform(obs)
             next_obs = self.transform(next_obs)
 
-        return obs, action, reward, next_obs, not_done
+        return obs, action, reward, next_obs, not_done, task
 
     def __len__(self):
         return self.capacity

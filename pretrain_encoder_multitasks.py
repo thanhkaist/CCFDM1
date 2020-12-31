@@ -19,8 +19,7 @@ from video import VideoRecorder
 
 from curl_sac import CurlSacAgent
 from curl_sac_pretrain import PretrainedSacAgent
-from curl_sac_pretrain_v1 import PretrainedSacAgent_v1
-from curl_sac_pretrain_v2 import PretrainedSacAgent_v2
+from curl_sac_pretrain_v3 import PretrainedSacAgent_v3
 from torchvision import transforms
 
 
@@ -136,79 +135,11 @@ def evaluate(env, agent, video, num_episodes, L, step, env_step, args):
 
 
 def make_agent(obs_shape, action_shape, args, device):
-    if args.agent == 'pretrained_sac':
-        return PretrainedSacAgent(
+    if args.agent == 'pretrained_sac_v3':
+        return PretrainedSacAgent_v3(
             obs_shape=obs_shape,
             action_shape=action_shape,
-            device=device,
-            hidden_dim=args.hidden_dim,
-            discount=args.discount,
-            init_temperature=args.init_temperature,
-            alpha_lr=args.alpha_lr,
-            alpha_beta=args.alpha_beta,
-            actor_lr=args.actor_lr,
-            actor_beta=args.actor_beta,
-            actor_log_std_min=args.actor_log_std_min,
-            actor_log_std_max=args.actor_log_std_max,
-            actor_update_freq=args.actor_update_freq,
-            critic_lr=args.critic_lr,
-            critic_beta=args.critic_beta,
-            critic_tau=args.critic_tau,
-            critic_target_update_freq=args.critic_target_update_freq,
-            encoder_type=args.encoder_type,
-            encoder_feature_dim=args.encoder_feature_dim,
-            encoder_lr=args.encoder_lr,
-            idm_lr=args.idm_lr,
-            fdm_lr=args.fdm_lr,
-            encoder_tau=args.encoder_tau,
-            num_layers=args.num_layers,
-            num_filters=args.num_filters,
-            cpc_update_freq=args.cpc_update_freq,
-            idm_update_freq=args.idm_update_freq,
-            fdm_update_freq=args.fdm_update_freq,
-            log_interval=args.log_interval,
-            detach_encoder=args.detach_encoder,
-            curl_latent_dim=args.curl_latent_dim
-
-        )
-    elif args.agent == 'pretrained_sac_v1':
-        return PretrainedSacAgent_v1(
-            obs_shape=obs_shape,
-            action_shape=action_shape,
-            device=device,
-            hidden_dim=args.hidden_dim,
-            discount=args.discount,
-            init_temperature=args.init_temperature,
-            alpha_lr=args.alpha_lr,
-            alpha_beta=args.alpha_beta,
-            actor_lr=args.actor_lr,
-            actor_beta=args.actor_beta,
-            actor_log_std_min=args.actor_log_std_min,
-            actor_log_std_max=args.actor_log_std_max,
-            actor_update_freq=args.actor_update_freq,
-            critic_lr=args.critic_lr,
-            critic_beta=args.critic_beta,
-            critic_tau=args.critic_tau,
-            critic_target_update_freq=args.critic_target_update_freq,
-            encoder_type=args.encoder_type,
-            encoder_feature_dim=args.encoder_feature_dim,
-            encoder_lr=args.encoder_lr,
-            idm_lr=args.idm_lr,
-            fdm_lr=args.fdm_lr,
-            encoder_tau=args.encoder_tau,
-            num_layers=args.num_layers,
-            num_filters=args.num_filters,
-            cpc_update_freq=args.cpc_update_freq,
-            idm_update_freq=args.idm_update_freq,
-            fdm_update_freq=args.fdm_update_freq,
-            log_interval=args.log_interval,
-            detach_encoder=args.detach_encoder,
-            curl_latent_dim=args.curl_latent_dim
-        )
-    elif args.agent == 'pretrained_sac_v2':
-        return PretrainedSacAgent_v2(
-            obs_shape=obs_shape,
-            action_shape=action_shape,
+            max_tasks=args.max_tasks,
             device=device,
             hidden_dim=args.hidden_dim,
             discount=args.discount,
@@ -370,9 +301,10 @@ def main():
 
                 obs = next_obs
                 episode_step += 1
+            replay_buffer.save(buffer_dir)
 
-    if args.save_buffer and args.load_buffer is None:
-        replay_buffer.save(buffer_dir)
+    #if args.save_buffer and args.load_buffer is None:
+    #    replay_buffer.save(buffer_dir)
 
     print('[INFO] Pre-training encoder ...')
     for step in tqdm(range(args.num_train_steps + 1)):
