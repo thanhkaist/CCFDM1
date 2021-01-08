@@ -8,7 +8,7 @@ import math
 import utils
 from encoder import make_encoder
 
-LOG_FREQ = 1000
+LOG_FREQ = 10000
 
 
 def gaussian_logprob(noise, log_std):
@@ -227,90 +227,6 @@ class CURL(nn.Module):
         logits = logits - torch.max(logits, 1)[0][:, None]
         return logits
 
-
-class InverseModel(nn.Module):
-    """MLP actor network."""
-    def __init__(
-        self, obs_shape, action_shape, hidden_dim, encoder_type,
-        encoder_feature_dim, log_std_min, log_std_max, num_layers, num_filters
-    ):
-        super().__init__()
-
-        self.encoder = make_encoder(
-            encoder_type, obs_shape, encoder_feature_dim, num_layers,
-            num_filters, output_logits=True
-        )
-
-        self.log_std_min = log_std_min
-        self.log_std_max = log_std_max
-
-        self.trunk = nn.Sequential(
-            nn.Linear(self.encoder.feature_dim * 2, hidden_dim), nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim), nn.ReLU(),
-            nn.Linear(hidden_dim, action_shape[0]), nn.Tanh()
-        )
-
-        self.apply(weight_init)
-
-    def forward(
-        self, obs, next_obs, detach_encoder=False
-    ):
-        obs = self.encoder(obs, detach=detach_encoder)
-        next_obs = self.encoder(next_obs, detach=detach_encoder)
-
-        obs_pair = torch.cat((obs, next_obs), axis=1)
-        pred_act = self.trunk(obs_pair)
-
-        return pred_act
-
-
-class ForwardModel(nn.Module):
-    """MLP actor network."""
-    def __init__(
-        self, obs_shape, action_shape, hidden_dim, encoder_type,
-        encoder_feature_dim, log_std_min, log_std_max, num_layers, num_filters
-    ):
-        super().__init__()
-
-        self.encoder = make_encoder(
-            encoder_type, obs_shape, encoder_feature_dim, num_layers,
-            num_filters, output_logits=True
-        )
-
-        self.action_embedding = nn.Sequential(
-            nn.Linear(action_shape[0], encoder_feature_dim),
-            nn.LayerNorm(encoder_feature_dim)
-        )
-
-        self.log_std_min = log_std_min
-        self.log_std_max = log_std_max
-
-        self.trunk = nn.Sequential(
-            nn.Linear(self.encoder.feature_dim * 2, hidden_dim),
-            nn.LayerNorm(hidden_dim), nn.ReLU(),
-            nn.Linear(hidden_dim, self.encoder.feature_dim), nn.LayerNorm(self.encoder.feature_dim)
-        )
-
-        self.apply(weight_init)
-
-    def forward(
-        self, obs, next_obs, action, detach_encoder=False
-    ):
-        obs_embedding = self.encoder(obs, detach=detach_encoder)
-        act_embedding = self.action_embedding(action)
-
-        obs_act_embedding = torch.cat((obs_embedding, act_embedding), axis=1)
-
-        with torch.no_grad():
-            # TODO: Should detach here?
-            next_obs_embedding = self.encoder(next_obs, detach=True)
-            next_obs_embedding = next_obs_embedding.detach()
-
-        pred_next_embedding = self.trunk(obs_act_embedding)
-
-        return pred_next_embedding, next_obs_embedding
-
-
 class PretrainedSacAgent(object):
     """CURL representation learning with SAC."""
     def __init__(
@@ -378,34 +294,10 @@ class PretrainedSacAgent(object):
             encoder_feature_dim, num_layers, num_filters
         ).to(device)
 
-        self.inverse_model = InverseModel(
-            obs_shape, action_shape, hidden_dim, encoder_type,
-            encoder_feature_dim, actor_log_std_min, actor_log_std_max,
-            num_layers, num_filters
-        ).to(device)
-
-        self.forward_model = ForwardModel(
-            obs_shape, action_shape, hidden_dim, encoder_type,
-            encoder_feature_dim, actor_log_std_min, actor_log_std_max,
-            num_layers, num_filters
-        ).to(device)
-
         self.critic_target.load_state_dict(self.critic.state_dict())
 
         # tie encoders between actor and critic, and CURL and critic
         self.actor.encoder.copy_conv_weights_from(self.critic.encoder)
-
-        # tie encoders between IDM and critic, and CURL and critic
-        self.inverse_model.encoder.copy_conv_weights_from(self.critic.encoder)
-        self.forward_model.encoder.copy_conv_weights_from(self.critic.encoder)
-
-        self.idm_optimizer = torch.optim.Adam(
-            self.inverse_model.parameters(), lr=idm_lr
-        )
-
-        self.fdm_optimizer = torch.optim.Adam(
-            self.forward_model.parameters(), lr=fdm_lr
-        )
 
         if self.encoder_type == 'pixel':
             # create CURL encoder (the 128 batch size is probably unnecessary)
@@ -422,14 +314,8 @@ class PretrainedSacAgent(object):
             )
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 
-        self.idm_criterion = nn.L1Loss()
-        # self.idm_criterion = nn.MSELoss()
-        self.fdm_criterion = nn.L1Loss()
-
         self.train()
         self.critic_target.train()
-        self.inverse_model.train()
-        self.forward_model.train()
 
     def train(self, training=True):
         self.training = training
@@ -476,30 +362,6 @@ class PretrainedSacAgent(object):
             L.log('train/curl_loss', loss, step)
 
 
-    def update_idm(self, obs, next_obs, action, L, step):
-        pred_act = self.inverse_model(obs, next_obs)
-        loss = self.idm_criterion(pred_act, action)
-
-        self.idm_optimizer.zero_grad()
-        loss.backward()
-        self.idm_optimizer.step()
-
-        if step % self.log_interval == 0:
-            L.log('train/idm_loss', loss, step)
-
-
-    def update_fdm(self, obs, next_obs, action, L, step):
-        pred_next_obs_embedding, next_obs_embedding = self.forward_model(obs, next_obs, action)
-        loss = self.fdm_criterion(pred_next_obs_embedding, next_obs_embedding)
-
-        self.fdm_optimizer.zero_grad()
-        loss.backward()
-        self.fdm_optimizer.step()
-
-        if step % self.log_interval == 0:
-            L.log('train/fdm_loss', loss, step)
-
-
     def update(self, replay_buffer, L, step):
         if self.encoder_type == 'pixel':
             obs, action, reward, next_obs, not_done, cpc_kwargs = replay_buffer.sample_cpc()
@@ -516,14 +378,6 @@ class PretrainedSacAgent(object):
             print('[INFO] Train w/ CPC.')
             obs_anchor, obs_pos = cpc_kwargs["obs_anchor"], cpc_kwargs["obs_pos"]
             self.update_cpc(obs_anchor, obs_pos,cpc_kwargs, L, step)
-
-        if step % self.idm_update_freq == 0 and self.encoder_type == 'pixel':
-            print('[INFO] Train w/ IDM.')
-            self.update_idm(obs, next_obs, action, L, step)
-
-        if step % self.fdm_update_freq == 0 and self.encoder_type == 'pixel':
-            print('[INFO] Train w/ FDM.')
-            self.update_fdm(obs, next_obs, action, L, step)
 
     def save(self, model_dir, step):
         torch.save(
