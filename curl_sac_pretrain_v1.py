@@ -187,7 +187,7 @@ class CURL(nn.Module):
     CURL
     """
 
-    def __init__(self, obs_shape, z_dim, batch_size, critic, critic_target, output_type="continuous"):
+    def __init__(self, obs_shape, action_shape, z_dim, batch_size, critic, critic_target, output_type="continuous"):
         super(CURL, self).__init__()
         self.batch_size = batch_size
 
@@ -199,15 +199,16 @@ class CURL(nn.Module):
         #     nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim),
         #     nn.LayerNorm(self.encoder.feature_dim)
         # )
-        self.predictor = nn.Sequential(
-            nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim), nn.ReLU(),
-            nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim),
+
+        self.action_embedding = nn.Sequential(
+            nn.Linear(action_shape[0], self.encoder.feature_dim), nn.ReLU(),
+            nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim)
         )
 
-        # self.predictor_inv = nn.Sequential(
-        #     nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim), nn.ReLU(),
-        #     nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim),
-        # )
+        self.predictor = nn.Sequential(
+            nn.Linear(self.encoder.feature_dim * 2, self.encoder.feature_dim), nn.ReLU(),
+            nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim),
+        )
 
         self.W = nn.Parameter(torch.rand(z_dim, z_dim))
         self.output_type = output_type
@@ -276,53 +277,6 @@ class InverseModel(nn.Module):
         pred_act = self.trunk(obs_pair)
 
         return pred_act
-
-
-class ForwardModel(nn.Module):
-    """MLP actor network."""
-    def __init__(
-        self, obs_shape, action_shape, hidden_dim, encoder_type,
-        encoder_feature_dim, log_std_min, log_std_max, num_layers, num_filters
-    ):
-        super().__init__()
-
-        self.encoder = make_encoder(
-            encoder_type, obs_shape, encoder_feature_dim, num_layers,
-            num_filters, output_logits=True
-        )
-
-        self.action_embedding = nn.Sequential(
-            nn.Linear(action_shape[0], encoder_feature_dim),
-            nn.LayerNorm(encoder_feature_dim)
-        )
-
-        self.log_std_min = log_std_min
-        self.log_std_max = log_std_max
-
-        self.trunk = nn.Sequential(
-            nn.Linear(self.encoder.feature_dim * 2, hidden_dim),
-            nn.LayerNorm(hidden_dim), nn.ReLU(),
-            nn.Linear(hidden_dim, self.encoder.feature_dim), nn.LayerNorm(self.encoder.feature_dim)
-        )
-
-        self.apply(weight_init)
-
-    def forward(
-        self, obs, next_obs, action, detach_encoder=False
-    ):
-        obs_embedding = self.encoder(obs, detach=detach_encoder)
-        act_embedding = self.action_embedding(action)
-
-        obs_act_embedding = torch.cat((obs_embedding, act_embedding), axis=1)
-
-        with torch.no_grad():
-            # TODO: Should detach here?
-            next_obs_embedding = self.encoder(next_obs, detach=True)
-            next_obs_embedding = next_obs_embedding.detach()
-
-        pred_next_embedding = self.trunk(obs_act_embedding)
-
-        return pred_next_embedding, next_obs_embedding
 
 
 class PretrainedSacAgent_v1(object):
@@ -398,12 +352,6 @@ class PretrainedSacAgent_v1(object):
             num_layers, num_filters
         ).to(device)
 
-        self.forward_model = ForwardModel(
-            obs_shape, action_shape, hidden_dim, encoder_type,
-            encoder_feature_dim, actor_log_std_min, actor_log_std_max,
-            num_layers, num_filters
-        ).to(device)
-
         self.critic_target.load_state_dict(self.critic.state_dict())
 
         # tie encoders between actor and critic, and CURL and critic
@@ -411,19 +359,15 @@ class PretrainedSacAgent_v1(object):
 
         # tie encoders between IDM and critic, and CURL and critic
         self.inverse_model.encoder.copy_conv_weights_from(self.critic.encoder)
-        self.forward_model.encoder.copy_conv_weights_from(self.critic.encoder)
 
         self.idm_optimizer = torch.optim.Adam(
             self.inverse_model.parameters(), lr=idm_lr
         )
 
-        self.fdm_optimizer = torch.optim.Adam(
-            self.forward_model.parameters(), lr=fdm_lr
-        )
 
         if self.encoder_type == 'pixel':
             # create CURL encoder (the 128 batch size is probably unnecessary)
-            self.CURL = CURL(obs_shape, encoder_feature_dim,
+            self.CURL = CURL(obs_shape, action_shape, encoder_feature_dim,
                         self.curl_latent_dim, self.critic,self.critic_target, output_type='continuous').to(self.device)
 
             # optimizer for critic encoder for reconstruction loss
@@ -436,14 +380,13 @@ class PretrainedSacAgent_v1(object):
             )
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 
+        self.fdm_criterion = nn.L1Loss()
         self.idm_criterion = nn.L1Loss()
         # self.idm_criterion = nn.MSELoss()
-        self.fdm_criterion = nn.L1Loss()
 
         self.train()
         self.critic_target.train()
         self.inverse_model.train()
-        self.forward_model.train()
 
     def train(self, training=True):
         self.training = training
@@ -471,17 +414,15 @@ class PretrainedSacAgent_v1(object):
             mu, pi, _, _ = self.actor(obs, compute_log_pi=False)
             return pi.cpu().data.numpy().flatten()
 
-    def update_cpc_v1(self, cur_obs_anchor, next_obs_pos, cpc_kwargs, L, step):
+    def update_cpc_v1(self, cur_obs_anchor, next_obs_pos, cur_action, cpc_kwargs, L, step):
         
-        z_t_a = self.CURL.encode(cur_obs_anchor)
-        z_t_plus_1_a = self.CURL.predictor(z_t_a)
+        z_cur = self.CURL.encode(cur_obs_anchor)
+        act_embedding = self.CURL.action_embedding(cur_action)
+        obs_act_embedding = torch.cat((z_cur, act_embedding), axis=1)
+        z_next_pred = self.CURL.predictor(obs_act_embedding)
 
-        z_t_plus_1_pos = self.CURL.encode(next_obs_pos, ema=True)
-
-
-        logits = self.CURL.compute_logits(z_t_plus_1_a, z_t_plus_1_pos)
-        labels = torch.arange(logits.shape[0]).long().to(self.device)
-        loss = self.cross_entropy_loss(logits, labels)
+        z_next = self.CURL.encode(next_obs_pos).detach()
+        loss = self.fdm_criterion(z_next_pred, z_next)
         
         self.encoder_optimizer.zero_grad()
         self.cpc_optimizer.zero_grad()
@@ -490,72 +431,7 @@ class PretrainedSacAgent_v1(object):
         self.encoder_optimizer.step()
         self.cpc_optimizer.step()
         if step % self.log_interval == 0:
-            L.log('train/curl_loss', loss, step)
-
-    def update_cpc_v2(self, cur_obs_anchor, next_obs_pos, cpc_kwargs, L, step):
-
-        z_t_a = self.CURL.encode(cur_obs_anchor)
-        z_t_plus_1_a = self.CURL.predictor(z_t_a)
-
-        z_t_plus_1_pos = self.CURL.encode(next_obs_pos, ema=True)
-
-        logits = self.CURL.compute_logits(z_t_plus_1_a, z_t_plus_1_pos)
-        labels = torch.arange(logits.shape[0]).long().to(self.device)
-        loss_s2s_next = self.cross_entropy_loss(logits, labels)
-
-        z_t_a = self.CURL.encode(next_obs_pos)
-        z_t_plus_1_a = self.CURL.predictor(z_t_a)
-
-        z_t_plus_1_pos = self.CURL.encode(cur_obs_anchor, ema=True)
-
-        logits = self.CURL.compute_logits(z_t_plus_1_a, z_t_plus_1_pos)
-        labels = torch.arange(logits.shape[0]).long().to(self.device)
-        loss_s_next2s = self.cross_entropy_loss(logits, labels)
-
-        loss = 0.5 * (loss_s2s_next + loss_s_next2s)
-        self.encoder_optimizer.zero_grad()
-        self.cpc_optimizer.zero_grad()
-        loss.backward()
-
-        self.encoder_optimizer.step()
-        self.cpc_optimizer.step()
-        if step % self.log_interval == 0:
-            L.log('train/curl_loss', loss, step)
-            L.log('train/curl_loss_s2s_next', loss_s2s_next, step)
-            L.log('train/curl_loss_s_next2s', loss_s_next2s, step)
-
-
-    def update_cpc_v3(self, cur_obs_anchor, next_obs_pos, cpc_kwargs, L, step):
-
-        z_t_a = self.CURL.encode(cur_obs_anchor)
-        z_t_plus_1_a = self.CURL.predictor(z_t_a)
-
-        z_t_plus_1_pos = self.CURL.encode(next_obs_pos, ema=True)
-
-        logits = self.CURL.compute_logits(z_t_plus_1_a, z_t_plus_1_pos)
-        labels = torch.arange(logits.shape[0]).long().to(self.device)
-        loss_s2s_next = self.cross_entropy_loss(logits, labels)
-
-        z_t_a = self.CURL.encode(next_obs_pos)
-        z_t_plus_1_a = self.CURL.predictor_inv(z_t_a)
-
-        z_t_plus_1_pos = self.CURL.encode(cur_obs_anchor, ema=True)
-
-        logits = self.CURL.compute_logits(z_t_plus_1_a, z_t_plus_1_pos)
-        labels = torch.arange(logits.shape[0]).long().to(self.device)
-        loss_s_next2s = self.cross_entropy_loss(logits, labels)
-
-        loss = 0.5 * (loss_s2s_next + loss_s_next2s)
-        self.encoder_optimizer.zero_grad()
-        self.cpc_optimizer.zero_grad()
-        loss.backward()
-
-        self.encoder_optimizer.step()
-        self.cpc_optimizer.step()
-        if step % self.log_interval == 0:
-            L.log('train/curl_loss', loss, step)
-            L.log('train/curl_loss_s2s_next', loss_s2s_next, step)
-            L.log('train/curl_loss_s_next2s', loss_s_next2s, step)
+            L.log('train/fdm_loss', loss, step)
 
 
     def update_idm(self, obs, next_obs, action, L, step):
@@ -570,21 +446,9 @@ class PretrainedSacAgent_v1(object):
             L.log('train/idm_loss', loss, step)
 
 
-    def update_fdm(self, obs, next_obs, action, L, step):
-        pred_next_obs_embedding, next_obs_embedding = self.forward_model(obs, next_obs, action)
-        loss = self.fdm_criterion(pred_next_obs_embedding, next_obs_embedding)
-
-        self.fdm_optimizer.zero_grad()
-        loss.backward()
-        self.fdm_optimizer.step()
-
-        if step % self.log_interval == 0:
-            L.log('train/fdm_loss', loss, step)
-
-
     def update(self, replay_buffer, L, step):
         if self.encoder_type == 'pixel':
-            obs, action, reward, next_obs, not_done, cpc_kwargs = replay_buffer.sample_cpc()
+            obs, action, reward, next_obs, not_done, cpc_kwargs = replay_buffer.sample_no_aug()
         else:
             obs, action, reward, next_obs, not_done = replay_buffer.sample_proprio()
     
@@ -596,17 +460,11 @@ class PretrainedSacAgent_v1(object):
 
         if step % self.cpc_update_freq == 0 and self.encoder_type == 'pixel':
             print('[INFO] Train w/ CPC.')
-            # obs_anchor, obs_pos = cpc_kwargs["obs_anchor"], cpc_kwargs["obs_pos"]
-            self.update_cpc_v1(obs, next_obs, cpc_kwargs, L, step)
-            # self.update_cpc_v2(obs, next_obs, cpc_kwargs, L, step)
+            self.update_cpc_v1(obs, next_obs, action, cpc_kwargs, L, step)
 
         if step % self.idm_update_freq == 0 and self.encoder_type == 'pixel':
             print('[INFO] Train w/ IDM.')
             self.update_idm(obs, next_obs, action, L, step)
-
-        # if step % self.fdm_update_freq == 0 and self.encoder_type == 'pixel':
-        #     print('[INFO] Train w/ FDM.')
-        #     self.update_fdm(obs, next_obs, action, L, step)
 
     def save(self, model_dir, step):
         torch.save(

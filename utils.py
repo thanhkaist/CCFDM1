@@ -149,23 +149,20 @@ class ReplayBuffer(Dataset):
 
         return obses, actions, rewards, next_obses, not_dones, cpc_kwargs
 
-    def sample_cpc_v1(self):
+    def sample_no_aug(self):
 
         start = time.time()
-        # idxs = np.random.randint(
-        #     0, self.capacity if self.full else self.idx, size=self.batch_size
-        # )
-        # TODO: Check new sample
-        idxs = np.random.choice(self.capacity if self.full else self.idx, size=self.batch_size,
-                                replace=False)
+        idxs = np.random.randint(
+            0, self.capacity if self.full else self.idx, size=self.batch_size
+        )
 
         obses = self.obses[idxs]
         next_obses = self.next_obses[idxs]
         pos = obses.copy()
 
-        obses = random_crop(obses, self.image_size)
-        next_obses = random_crop(next_obses, self.image_size)
-        pos = random_crop(pos, self.image_size)
+        obses = center_crop_images(obses, self.image_size)
+        next_obses = center_crop_images(next_obses, self.image_size)
+        pos = center_crop_images(pos, self.image_size)
     
         obses = torch.as_tensor(obses, device=self.device).float()
         next_obses = torch.as_tensor(
@@ -292,6 +289,16 @@ def center_crop_image(image, output_size):
     image = image[:, top:top + new_h, left:left + new_w]
     return image
 
+
+def center_crop_images(image, output_size):
+    h, w = image.shape[2:]
+    new_h, new_w = output_size, output_size
+
+    top = (h - new_h)//2
+    left = (w - new_w)//2
+
+    image = image[:, :, top:top + new_h, left:left + new_w]
+    return image
 
 class ReplayBufferMultiTasks(Dataset):
     """Buffer to store environment transitions."""
