@@ -1,0 +1,8 @@
+#CUDA_VISIBLE_DEVICES=4 python train_modify_logging_step.py --domain_name cheetah --task_name run --encoder_type pixel --action_repeat 4 --save_tb --pre_transform_image_size 100 --image_size 84 --work_dir ./tmp --agent curl_sac --frame_stack 3 --seed -1 --critic_lr 1e-3 --actor_lr 1e-3 --eval_freq 10000 --batch_size 128 --num_train_steps 125000
+
+
+#CUDA_VISIBLE_DEVICES=5 python train_modify_logging_step.py --domain_name walker --task_name walk --encoder_type pixel --action_repeat 2 --save_tb --pre_transform_image_size 100 --image_size 84 --work_dir ./tmp --agent curl_sac --frame_stack 3 --seed -1 --critic_lr 1e-3 --actor_lr 1e-3 --eval_freq 10000 --batch_size 128 --num_train_steps 250000
+
+#CUDA_VISIBLE_DEVICES=7 python train_modify_logging_step.py --domain_name ball_in_cup --task_name catch --encoder_type pixel --action_repeat 4 --save_tb --pre_transform_image_size 100 --image_size 84 --work_dir ./tmp --agent curl_sac --frame_stack 3 --seed -1 --critic_lr 1e-3 --actor_lr 1e-3 --eval_freq 10000 --batch_size 128 --num_train_steps 125000
+
+CUDA_VISIBLE_DEVICES=1 python train_modify_logging_step.py --domain_name cheetah --task_name run --encoder_type pixel --action_repeat 4 --save_tb --pre_transform_image_size 100 --image_size 84 --work_dir ./tmp --agent curl_sac_e2e --frame_stack 3 --seed -1 --critic_lr 1e-3 --actor_lr 1e-3 --eval_freq 10000 --batch_size 128 --num_train_steps 125000 --idm_lr 1e-3

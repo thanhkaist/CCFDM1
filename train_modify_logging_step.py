@@ -17,6 +17,7 @@ from logger import Logger
 from video import VideoRecorder
 
 from curl_sac import CurlSacAgent
+from curl_sac_e2e import CurlSacAgentE2E
 from torchvision import transforms
 
 
@@ -60,6 +61,11 @@ def parse_args():
     parser.add_argument('--num_layers', default=4, type=int)
     parser.add_argument('--num_filters', default=32, type=int)
     parser.add_argument('--curl_latent_dim', default=128, type=int)
+    parser.add_argument('--idm_lr', default=1e-3, type=float)
+    parser.add_argument('--fdm_lr', default=1e-3, type=float)
+    parser.add_argument('--cpc_update_freq', default=2, type=float)
+    parser.add_argument('--idm_update_freq', default=2, type=float)
+    parser.add_argument('--fdm_update_freq', default=2, type=float)
     # sac
     parser.add_argument('--discount', default=0.99, type=float)
     parser.add_argument('--init_temperature', default=0.1, type=float)
@@ -147,7 +153,40 @@ def make_agent(obs_shape, action_shape, args, device):
             log_interval=args.log_interval,
             detach_encoder=args.detach_encoder,
             curl_latent_dim=args.curl_latent_dim
-
+        )
+    elif args.agent == 'curl_sac_e2e':
+        return CurlSacAgentE2E(
+            obs_shape=obs_shape,
+            action_shape=action_shape,
+            device=device,
+            hidden_dim=args.hidden_dim,
+            discount=args.discount,
+            init_temperature=args.init_temperature,
+            alpha_lr=args.alpha_lr,
+            alpha_beta=args.alpha_beta,
+            actor_lr=args.actor_lr,
+            actor_beta=args.actor_beta,
+            actor_log_std_min=args.actor_log_std_min,
+            actor_log_std_max=args.actor_log_std_max,
+            actor_update_freq=args.actor_update_freq,
+            critic_lr=args.critic_lr,
+            critic_beta=args.critic_beta,
+            critic_tau=args.critic_tau,
+            critic_target_update_freq=args.critic_target_update_freq,
+            encoder_type=args.encoder_type,
+            encoder_feature_dim=args.encoder_feature_dim,
+            encoder_lr=args.encoder_lr,
+            idm_lr=args.idm_lr,
+            fdm_lr=args.fdm_lr,
+            encoder_tau=args.encoder_tau,
+            num_layers=args.num_layers,
+            num_filters=args.num_filters,
+            cpc_update_freq=args.cpc_update_freq,
+            idm_update_freq=args.idm_update_freq,
+            fdm_update_freq=args.fdm_update_freq,
+            log_interval=args.log_interval,
+            detach_encoder=args.detach_encoder,
+            curl_latent_dim=args.curl_latent_dim
         )
     else:
         assert 'agent is not supported: %s' % args.agent
