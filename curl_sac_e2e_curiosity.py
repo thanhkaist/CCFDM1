@@ -475,32 +475,41 @@ class CurlSacAgentE2E_RI(object):
             L.log('train/curl_loss', loss, step)
     
     def update_cpc_v1(self, cur_obs_anchor, next_obs_pos, cur_action, cpc_kwargs, L, step):
-        
-        z_t_a = self.CURL.encode(cur_obs_anchor)
+        # weight 
+        C = 0.2
+        obs_pos = cpc_kwargs["obs_pos"]
+        z_t_a = self.CURL.encode(cur_obs_anchor) # q
         act_embedding = self.CURL.action_embedding(cur_action)
         obs_act_embedding = torch.cat((z_t_a, act_embedding), axis=1)
-        z_t_plus_1_a = self.CURL.predictor(obs_act_embedding)
-
-        z_t_plus_1_pos = self.CURL.encode(next_obs_pos, ema=True)
-
-
+        z_t_plus_1_a = self.CURL.predictor(obs_act_embedding) # at 
+        z_t_plus_1_pos = self.CURL.encode(next_obs_pos, ema=True)# kt+1
+        # Loss curl
+        z_pos = self.CURL.encode(obs_pos, ema=True) # kt
+        logits_curl = self.CURL.compute_logits(z_t_a, z_pos)
+        labels_curl = torch.arange(logits_curl.shape[0]).long().to(self.device)
+        loss_curl = self.cross_entropy_loss(logits_curl, labels_curl)
+        # loss FDM
         logits = self.CURL.compute_logits(z_t_plus_1_a, z_t_plus_1_pos)
         labels = torch.arange(logits.shape[0]).long().to(self.device)
         loss = self.cross_entropy_loss(logits, labels)
-        
+        # Total loss
+        total_loss = (1-C)*loss + C*loss_curl
         self.encoder_optimizer.zero_grad()
         self.cpc_optimizer.zero_grad()
-        loss.backward()
+        total_loss.backward()
 
         self.encoder_optimizer.step()
         self.cpc_optimizer.step()
         if step % self.log_interval == 0:
-            L.log('train/curl_loss', loss, step)
+            L.log('train/curl_loss', loss_curl, step)
+            L.log('train/fdm_loss', loss, step)
+            L.log('train/total_loss', total_loss, step)
     
 
     def update(self, replay_buffer, L, step, env_step):
         # intrinsic_weight
-        intrinsic_weight = 2e-5
+        intrinsic_decay = 2e-5
+        C = 0.2 # intrinsic weight
         if self.encoder_type == 'pixel':
             obs, action, reward, next_obs, not_done, cpc_kwargs = replay_buffer.sample_cpc()
             # update max extrinsic reward
@@ -510,15 +519,23 @@ class CurlSacAgentE2E_RI(object):
                 self.max_extrinsic_reward = max_reward
             if self.training:
                 ri = self.CURL.conpute_intrinsic_reward(obs, next_obs, action, self.max_extrinsic_reward)
-                reward = reward + np.exp(-intrinsic_weight*env_step)*ri
+                
+                if step % self.log_interval == 0:
+                    L.log('train/batch_reward', reward.mean(), env_step)
+                    L.log('train/intrinsic_reward', ri.mean(), env_step)
+                reward = reward + C*np.exp(-intrinsic_weight*env_step)*ri
         else:
             obs, action, reward, next_obs, not_done = replay_buffer.sample_proprio()
             if self.training:
-                ri = self.CURL.conpute_intrinsic_reward(obs, next_obs, action, max_reward)
-                reward = reward + np.exp(-intrinsic_weight*env_step)*ri
+                ri = self.CURL.conpute_intrinsic_reward(obs, next_obs, action, self.max_extrinsic_reward)
+                
+                if step % self.log_interval == 0:
+                    L.log('train/batch_reward', reward.mean(), env_step)
+                    L.log('train/intrinsic_reward', ri.mean(), env_step)
+                reward = reward + C*np.exp(-intrinsic_weight*env_step)*ri
     
         if step % self.log_interval == 0:
-            L.log('train/batch_reward', reward.mean(), env_step)
+            L.log('train/total_reward', reward.mean(), env_step)
 
         self.update_critic(obs, action, reward, next_obs, not_done, L, step, env_step)
 
