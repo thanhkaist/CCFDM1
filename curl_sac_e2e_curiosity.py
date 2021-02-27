@@ -523,7 +523,7 @@ class CurlSacAgentE2E_RI(object):
                 if step % self.log_interval == 0:
                     L.log('train/batch_reward', reward.mean(), env_step)
                     L.log('train/intrinsic_reward', ri.mean(), env_step)
-                reward = reward + C*np.exp(-intrinsic_weight*env_step)*ri
+                reward = reward + C*np.exp(-intrinsic_decay*env_step)*ri
         else:
             obs, action, reward, next_obs, not_done = replay_buffer.sample_proprio()
             if self.training:
@@ -532,7 +532,7 @@ class CurlSacAgentE2E_RI(object):
                 if step % self.log_interval == 0:
                     L.log('train/batch_reward', reward.mean(), env_step)
                     L.log('train/intrinsic_reward', ri.mean(), env_step)
-                reward = reward + C*np.exp(-intrinsic_weight*env_step)*ri
+                reward = reward + C*np.exp(-intrinsic_decay*env_step)*ri
     
         if step % self.log_interval == 0:
             L.log('train/total_reward', reward.mean(), env_step)
