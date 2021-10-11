@@ -1,6 +1,6 @@
-# CURL: Contrastive Unsupervised Representation Learning for Sample-Efficient Reinforcement Learning
+# CCFDM: Sample-efficient Reinforcement Learning Representation Learning with Curiosity Contrastive Forward Dynamics Model
 
-This repository is the official implementation of [CURL](https://mishalaskin.github.io/curl/) for the DeepMind control experiments. Atari experiments were done in a separate codebase available [here](https://github.com/aravindsrinivas/curl_rainbow). Our implementation of SAC is based on [SAC+AE](https://github.com/denisyarats/pytorch_sac_ae) by Denis Yarats. 
+This repository is the official implementation of [CCFDM]() for the DeepMind control experiments. Our implementation of SAC is based on [SAC+AE](https://github.com/denisyarats/pytorch_sac_ae) by Denis Yarats. 
 
 ## Installation 
 
@@ -11,18 +11,7 @@ conda env create -f conda_env.yml
 ```
 
 ## Instructions
-To train a CURL agent on the `cartpole swingup` task from image-based observations run `bash script/run.sh` from the root of this directory. The `run.sh` file contains the following command, which you can modify to try different environments / hyperparamters.
-```
-CUDA_VISIBLE_DEVICES=0 python train.py \
-    --domain_name cartpole \
-    --task_name swingup \
-    --encoder_type pixel \
-    --action_repeat 8 \
-    --save_tb --pre_transform_image_size 100 --image_size 84 \
-    --work_dir ./tmp \
-    --agent curl_sac --frame_stack 3 \
-    --seed -1 --critic_lr 1e-3 --actor_lr 1e-3 --eval_freq 10000 --batch_size 128 --num_train_steps 1000000 
-```
+To train CCFDM on all the tasks from image-based observations run `bash script/run_all_ri.sh` from the root of this directory. You can modify to try different environments / hyperparamters by changing the scripts in the `script` folder.
 
 In your console, you should see printouts that look like:
 
@@ -32,8 +21,6 @@ In your console, you should see printouts that look like:
 | train | E: 229 | S: 29000 | D: 18.8 s | R: 683.6702 | BR: 3.7384 | A_LOSS: -311.3941 | CR_LOSS: 140.2573 | CU_LOSS: 0.0000
 | train | E: 233 | S: 29500 | D: 19.6 s | R: 838.0947 | BR: 3.7254 | A_LOSS: -316.9415 | CR_LOSS: 136.5304 | CU_LOSS: 0.0000
 ```
-
-For reference, the maximum score for cartpole swing up is around 845 pts, so CURL has converged to the optimal score. This takes about an hour of training depending on your GPU. 
 
 Log abbreviation mapping:
 
@@ -58,3 +45,22 @@ tensorboard --logdir log --port 6006
 and go to `localhost:6006` in your browser. If you're running headlessly, try port forwarding with ssh. 
 
 For GPU accelerated rendering, make sure EGL is installed on your machine and set `export MUJOCO_GL=egl`. For environment troubleshooting issues, see the DeepMind control documentation.
+
+## References
+
+This is the code for the paper 
+> Thanh Nguyen, Tung M. Luu, Thang Vu, Chang D. Yoo. Sample-efficient Reinforcement Learning Representation Learning with Curiosity Contrastive Forward Dynamics Model. IROS 2021 - 2021 IEEE/RSJ International Conference on Intelligent Robots and Systems [[ArXiv](https://arxiv.org/abs/2103.08255)]
+
+If you want to cite this paper:
+```
+@inproceedings{nguyen2021robust,
+  title={Robust MAML: Prioritization task buffer with adaptive learning process for model-agnostic meta-learning},
+  author={Nguyen, Thanh and Luu, Tung and Pham, Trung and Rakhimkul, Sanzhar and Yoo, Chang D},
+  booktitle={ICASSP 2021-2021 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  pages={3460--3464},
+  year={2021},
+  organization={IEEE}
+}
+```
+
+
