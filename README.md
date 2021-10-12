@@ -53,13 +53,11 @@ This is the code for the paper
 
 If you want to cite this paper:
 ```
-@inproceedings{nguyen2021robust,
-  title={Robust MAML: Prioritization task buffer with adaptive learning process for model-agnostic meta-learning},
-  author={Nguyen, Thanh and Luu, Tung and Pham, Trung and Rakhimkul, Sanzhar and Yoo, Chang D},
-  booktitle={ICASSP 2021-2021 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
-  pages={3460--3464},
-  year={2021},
-  organization={IEEE}
+@article{nguyen2021sample,
+  title={Sample-efficient Reinforcement Learning Representation Learning with Curiosity Contrastive Forward Dynamics Model},
+  author={Nguyen, Thanh and Luu, Tung M and Vu, Thang and Yoo, Chang D},
+  journal={arXiv preprint arXiv:2103.08255},
+  year={2021}
 }
 ```
 
