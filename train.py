@@ -250,7 +250,7 @@ def main():
             if step % args.log_interval == 0:
                 L.log('train/episode', episode, step)
 
-        # sample action for data collection
+        # action is randomly sample with initial steps before sample from the agent 
         if step < args.init_steps:
             action = env.action_space.sample()
         else:
