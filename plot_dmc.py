@@ -174,7 +174,6 @@ def plot_multiple_results(directories):
     else:
         legend_name = [directories[i].split('/')[-1] for i in range(len(directories))]
 
-    # import pdb; pdb.set_trace()
     # Print scores
     if args.score:
         for i in range(len(collect_data)):
