@@ -5,3 +5,7 @@ __pycache__/
 scripts/run_*.sh
 test*
 *frame2state*
+*.doc
+document/
+trash/
+data/
