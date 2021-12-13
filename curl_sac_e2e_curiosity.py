@@ -194,7 +194,10 @@ class CURL(nn.Module):
         self.encoder = critic.encoder
 
         self.encoder_target = critic_target.encoder 
-        if True: # this code is for embedding
+        
+        # this code is for embedding
+        
+        if True: 
             self.action_embedding = nn.Sequential(
             nn.Linear(action_shape[0], self.encoder.feature_dim), nn.ReLU(),
             nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim)
