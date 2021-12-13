@@ -381,7 +381,6 @@ class PretrainedSacAgent_v2(object):
         self.cross_entropy_loss = nn.CrossEntropyLoss()
 
         self.idm_criterion = nn.L1Loss()
-        # self.idm_criterion = nn.MSELoss()
 
         self.train()
         self.critic_target.train()
