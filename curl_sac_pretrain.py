@@ -304,7 +304,7 @@ class PretrainedSacAgent(object):
             self.CURL = CURL(obs_shape, encoder_feature_dim,
                         self.curl_latent_dim, self.critic,self.critic_target, output_type='continuous').to(self.device)
 
-            # optimizer for critic encoder for reconstruction loss
+            # optimizers
             self.encoder_optimizer = torch.optim.Adam(
                 self.critic.encoder.parameters(), lr=encoder_lr
             )
