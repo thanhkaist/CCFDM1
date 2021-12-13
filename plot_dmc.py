@@ -181,12 +181,6 @@ def plot_multiple_results(directories):
             idx_500k = np.where(exp_step_idxs[i] == 480000)[0]
 
             # idx_100k = np.where(exp_step_idxs[i] == 80000)[0]
-            # idx_200k = np.where(exp_step_idxs[i] == 200000)[0]
-            # idx_300k = np.where(exp_step_idxs[i] == 280000)[0]
-            # idx_400k = np.where(exp_step_idxs[i] == 400000)[0]
-            # idx_500k = np.where(exp_step_idxs[i] == 480000)[0]
-
-            # idx_100k = np.where(exp_step_idxs[i] == 80000)[0]
             # idx_200k = np.where(exp_step_idxs[i] == 240000)[0]
             # idx_300k = np.where(exp_step_idxs[i] == 320000)[0]
             # idx_400k = np.where(exp_step_idxs[i] == 400000)[0]
