@@ -200,8 +200,6 @@ class CURL(nn.Module):
             nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim)
             )
             
-            #TODO: Increase the size of forward dynamic model
-
             self.predictor = nn.Sequential(
             nn.Linear(self.encoder.feature_dim * 2, self.encoder.feature_dim), nn.ReLU(),
             nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim),
