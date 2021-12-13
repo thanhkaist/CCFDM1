@@ -375,9 +375,7 @@ class PretrainedSacAgent_v3(object):
                 self.CURL.parameters(), lr=encoder_lr
             )
         self.cross_entropy_loss = nn.CrossEntropyLoss()
-
         self.idm_criterion = nn.L1Loss()
-        # self.idm_criterion = nn.MSELoss()
 
         self.train()
         self.critic_target.train()
