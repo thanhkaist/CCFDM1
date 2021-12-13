@@ -327,7 +327,7 @@ class CurlSacAgentE2E(object):
         )
 
         if self.encoder_type == 'pixel':
-            # create CURL encoder (the 128 batch size is probably unnecessary)
+            # create CURL encoder 
             self.CURL = CURL(obs_shape, action_shape, encoder_feature_dim,
                         self.curl_latent_dim, self.critic,self.critic_target, output_type='continuous').to(self.device)
 
