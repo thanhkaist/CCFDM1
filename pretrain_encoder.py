@@ -355,7 +355,6 @@ def main():
 
     print('[INFO] Pre-training encoder ...')
     for step in tqdm(range(args.num_train_steps + 1)):
-        # evaluate agent periodically
 
         if step != 0:
             agent.update(replay_buffer, L, step)
