@@ -196,7 +196,6 @@ class CURL(nn.Module):
         self.encoder_target = critic_target.encoder 
         
         # this code is for embedding
-        
         if True: 
             self.action_embedding = nn.Sequential(
             nn.Linear(action_shape[0], self.encoder.feature_dim), nn.ReLU(),
@@ -233,14 +232,14 @@ class CURL(nn.Module):
         # Return intrinsic reward 
         with torch.no_grad():
             z_t_out = self.encoder_target(obs)
-            #z_t_out.detach()
+            # z_t_out.detach()
             z_t_1_out = self.encoder_target(next_obs)
             act_embedding = self.action_embedding(action)
             obs_act_embedding = torch.cat((z_t_out, act_embedding), axis=1)
             z_t_plus_1_a = self.predictor(obs_act_embedding)
-            ## FDM error 
+            # FDM error 
             mse =  torch.sqrt(torch.sum((z_t_1_out - z_t_plus_1_a)**2,axis=1))
-            ## update max error 
+            # Update max error 
             max = torch.max(mse)
             if max > self.max_predictor_error:
                 self.max_predictor_error = max
@@ -367,7 +366,7 @@ class CurlSacAgentE2E_RI(object):
 
         self.train()
         self.critic_target.train()
-        # maxreward
+        # max reward
         self.max_extrinsic_reward = 1
 
     def train(self, training=True):
