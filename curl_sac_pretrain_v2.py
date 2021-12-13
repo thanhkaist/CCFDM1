@@ -463,10 +463,6 @@ class PretrainedSacAgent_v2(object):
             print('[INFO] Train w/ IDM.')
             self.update_idm(obs, next_obs, action, L, step)
 
-        # if step % self.fdm_update_freq == 0 and self.encoder_type == 'pixel':
-        #     print('[INFO] Train w/ FDM.')
-        #     self.update_fdm(obs, next_obs, action, L, step)
-
     def save(self, model_dir, step):
         torch.save(
             self.actor.state_dict(), '%s/actor_%s.pt' % (model_dir, step)
