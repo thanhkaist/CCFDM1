@@ -300,7 +300,7 @@ class PretrainedSacAgent(object):
         self.actor.encoder.copy_conv_weights_from(self.critic.encoder)
 
         if self.encoder_type == 'pixel':
-            # create CURL encoder (the 128 batch size is probably unnecessary)
+            # create CURL encoder 
             self.CURL = CURL(obs_shape, encoder_feature_dim,
                         self.curl_latent_dim, self.critic,self.critic_target, output_type='continuous').to(self.device)
 
