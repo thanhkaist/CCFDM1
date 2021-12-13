@@ -277,18 +277,18 @@ class PretrainedSacAgent(object):
         self.curl_latent_dim = curl_latent_dim
         self.detach_encoder = detach_encoder
         self.encoder_type = encoder_type
-
+        # Create actor
         self.actor = Actor(
             obs_shape, action_shape, hidden_dim, encoder_type,
             encoder_feature_dim, actor_log_std_min, actor_log_std_max,
             num_layers, num_filters
         ).to(device)
-
+        # Create critic
         self.critic = Critic(
             obs_shape, action_shape, hidden_dim, encoder_type,
             encoder_feature_dim, num_layers, num_filters
         ).to(device)
-
+        # Create critic target
         self.critic_target = Critic(
             obs_shape, action_shape, hidden_dim, encoder_type,
             encoder_feature_dim, num_layers, num_filters
