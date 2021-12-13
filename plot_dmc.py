@@ -95,7 +95,6 @@ def get_info_env(path):
         data_augs=""
     )
     json_file = os.path.join(path, 'args.json')
-    #import pdb; pdb.set_trace()
     with open(json_file, 'r') as f:
         data = json.load(f)
     for k in info.keys():
