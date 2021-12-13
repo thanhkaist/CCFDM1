@@ -6,8 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import glob2
 
-#from baselines.common import plot_util
-
 def smooth(y, radius, mode='two_sided', valid_only=False):
     '''
     Smooth signal y, where radius is determines the size of the window
