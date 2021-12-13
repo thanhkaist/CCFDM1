@@ -500,7 +500,6 @@ class CurlSacAgentE2E(object):
         
         if step % self.cpc_update_freq == 0 and self.encoder_type == 'pixel':
             obs_anchor, obs_pos = cpc_kwargs["obs_anchor"], cpc_kwargs["obs_pos"]
-            ##self.update_cpc(obs_anchor, obs_pos,cpc_kwargs, L, step)
             self.update_cpc_v1(obs, next_obs, action, cpc_kwargs, L, env_step)
 
     def save(self, model_dir, step):
