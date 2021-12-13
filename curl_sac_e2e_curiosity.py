@@ -508,7 +508,8 @@ class CurlSacAgentE2E_RI(object):
     def update(self, replay_buffer, L, step, env_step):
         # intrinsic_weight
         intrinsic_decay = 2e-5
-        C = 0.2 # intrinsic weight
+        # intrinsic weight
+        C = 0.2 
         if self.encoder_type == 'pixel':
             obs, action, reward, next_obs, not_done, cpc_kwargs = replay_buffer.sample_cpc()
             # update max extrinsic reward
