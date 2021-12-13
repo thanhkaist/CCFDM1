@@ -234,7 +234,6 @@ class CURL(nn.Module):
             z_t_out = self.encoder_target(obs)
             #z_t_out.detach()
             z_t_1_out = self.encoder_target(next_obs)
-            #z_t_1_out.detach()
             act_embedding = self.action_embedding(action)
             obs_act_embedding = torch.cat((z_t_out, act_embedding), axis=1)
             z_t_plus_1_a = self.predictor(obs_act_embedding)
