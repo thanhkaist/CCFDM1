@@ -377,7 +377,6 @@ class PretrainedSacAgent_v1(object):
 
         self.fdm_criterion = nn.L1Loss()
         self.idm_criterion = nn.L1Loss()
-        # self.idm_criterion = nn.MSELoss()
 
         self.train()
         self.critic_target.train()
