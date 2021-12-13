@@ -302,9 +302,6 @@ def main():
                 episode_step += 1
             replay_buffer.save(buffer_dir)
 
-    #if args.save_buffer and args.load_buffer is None:
-    #    replay_buffer.save(buffer_dir)
-
     print('[INFO] Pre-training encoder ...')
     for step in tqdm(range(args.num_train_steps + 1)):
         # evaluate agent periodically
