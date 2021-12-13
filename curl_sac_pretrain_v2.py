@@ -194,12 +194,6 @@ class CURL(nn.Module):
         self.encoder = critic.encoder
 
         self.encoder_target = critic_target.encoder
-
-        # self.predictor = nn.Sequential(
-        #     nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim),
-        #     nn.LayerNorm(self.encoder.feature_dim)
-        # )
-
         self.action_embedding = nn.Sequential(
             nn.Linear(action_shape[0], self.encoder.feature_dim), nn.ReLU(),
             nn.Linear(self.encoder.feature_dim, self.encoder.feature_dim)
