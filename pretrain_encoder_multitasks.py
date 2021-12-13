@@ -279,7 +279,6 @@ def main():
         print('[INFO] Collecting data from environment...')
         for n in range(n_tasks):
             for _ in tqdm(range(args.n_samples)):
-                # sampled_task = np.random.randint(n_tasks)
                 sampled_task = n
                 task_desc = np.zeros(args.max_tasks, dtype=np.float32)
                 task_desc[sampled_task] = 1.0
